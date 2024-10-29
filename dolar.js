@@ -9,22 +9,24 @@ app.use(express.json()); // Para manejar el cuerpo de solicitudes POST
 // Variable para almacenar el XML generado
 let latestXml = null;
 
-// Función para formatear la fecha y ajustar a la zona horaria de Argentina (UTC-3)
+// Función para formatear la fecha y ajustarla automáticamente a la zona horaria de Argentina
 function formatearFecha(fechaString) {
     // Convertir la cadena de texto a un objeto Date en UTC
     const fecha = new Date(fechaString);
 
-    // Ajustar la fecha a la zona horaria de Argentina (UTC-3)
-    const fechaArgentina = new Date(fecha.setHours(fecha.getHours() - 3));
+    // Opciones para formatear la fecha en "Día y mes, y hora, minuto" en la zona horaria de Argentina
+    const opciones = {
+        day: 'numeric',
+        month: 'long',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+        timeZone: 'America/Argentina/Buenos_Aires'
+    };
 
-    // Opciones para formatear la fecha en "Día y mes, y hora, minuto"
-    const opcionesFecha = { day: 'numeric', month: 'long' };
-    const opcionesHora = { hour: '2-digit', minute: '2-digit', hour12: false };
+    const fechaFormateada = new Intl.DateTimeFormat('es-ES', opciones).format(fecha);
 
-    const fechaFormateada = new Intl.DateTimeFormat('es-ES', opcionesFecha).format(fechaArgentina);
-    const horaFormateada = new Intl.DateTimeFormat('es-ES', opcionesHora).format(fechaArgentina);
-
-    return `${fechaFormateada}, a las ${horaFormateada}`;
+    return fechaFormateada;
 }
 
 // Función para obtener la cotización del dólar blue
