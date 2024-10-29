@@ -9,6 +9,21 @@ app.use(express.json()); // Para manejar el cuerpo de solicitudes POST
 // Variable para almacenar el XML generado
 let latestXml = null;
 
+// Función para formatear la fecha
+function formatearFecha(fechaString) {
+    // Convertir la cadena de texto a un objeto Date
+    const fecha = new Date(fechaString);
+
+    // Opciones para formatear la fecha en "Día y mes, y hora, minuto"
+    const opcionesFecha = { day: 'numeric', month: 'long' };
+    const opcionesHora = { hour: '2-digit', minute: '2-digit', hour12: false };
+
+    const fechaFormateada = new Intl.DateTimeFormat('es-ES', opcionesFecha).format(fecha);
+    const horaFormateada = new Intl.DateTimeFormat('es-ES', opcionesHora).format(fecha);
+
+    return `${fechaFormateada}, a las ${horaFormateada}`;
+}
+
 // Función para obtener la cotización del dólar blue
 async function obtenerCotizacionDolarBlue() {
     try {
@@ -21,11 +36,13 @@ async function obtenerCotizacionDolarBlue() {
         // Log para revisar el formato de la fecha
         console.log(`Formato de la fecha recibida: ${fechaActualizacion}`);
         
-        console.log(`Dólar Blue - Compra: ${compra}, Venta: ${venta}, Fecha de actualización: ${fechaActualizacion}`);
+        // Formatear la fecha de actualización
+        const fechaFormateada = formatearFecha(fechaActualizacion);
+        console.log(`Fecha formateada: ${fechaFormateada}`);
         
         // Generar el XML con la cotización
         const xml = xmlbuilder.create('Response')
-            .ele('Say', { voice: 'Polly.Andres-Neural', language: "es-MX" }, `${compra} pesos para la compra. Y ${venta} pesos para la venta.`)
+            .ele('Say', { voice: 'Polly.Andres-Neural', language: "es-MX" }, `${compra} pesos para la compra. Y ${venta} pesos para la venta. Actualizado el ${fechaFormateada}.`)
             .up()
             .ele('Redirect', { method: 'POST' }, `${process.env.TWILIO_WEBHOOK_URL}?FlowEvent=return`)
             .up()
