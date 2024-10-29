@@ -1,6 +1,7 @@
 const express = require('express');
 const axios = require('axios');
 const xmlbuilder = require('xmlbuilder');
+require('dotenv').config(); // Para manejar variables de entorno
 
 const app = express();
 app.use(express.json()); // Para manejar el cuerpo de solicitudes POST
@@ -20,7 +21,9 @@ async function obtenerCotizacionDolarBlue() {
         
         // Generar el XML con la cotización
         const xml = xmlbuilder.create('Response')
-            .ele('Say', {}, `${compra} pesos para la compra. Y ${venta} pesos para la venta.`)
+            .ele('Say', { voice: 'Polly.Andres-Neural', language: "es-MX" }, `${compra} pesos para la compra. Y ${venta} pesos para la venta.`)
+            .up()
+            .ele('Redirect', { method: 'POST' }, `${process.env.TWILIO_WEBHOOK_URL}?FlowEvent=return`)
             .up()
             .end({ pretty: true });
 
@@ -30,7 +33,10 @@ async function obtenerCotizacionDolarBlue() {
         console.error('Error al consultar el valor del dólar blue:', error);
         // Generar un XML de error en caso de fallo en la consulta
         latestXml = xmlbuilder.create('Response')
-            .ele('Say', {}, 'Lo sentimos, no se pudo obtener la cotización del dólar blue en este momento. Intente más tarde.')
+            .ele('Say', { voice: 'Polly.Andres-Neural', language: "es-MX" }, 'Lo sentimos, no se pudo obtener la cotización del dólar blue en este momento. Intente más tarde.')
+            .up()
+            .ele('Redirect', { method: 'POST' }, `${process.env.TWILIO_WEBHOOK_URL}?FlowEvent=return`)
+            .up()
             .end({ pretty: true });
     }
 }
@@ -57,7 +63,10 @@ app.get('/dolar-blue', (req, res) => {
     } else {
         // Si no hay XML disponible, generar un XML de error
         const xml = xmlbuilder.create('Response')
-            .ele('Say', {}, 'Lo sentimos, no se pudo obtener la cotización del dólar blue en este momento. Intente más tarde.')
+            .ele('Say', { voice: 'Polly.Andres-Neural', language: "es-MX" }, 'Lo sentimos, no se pudo obtener la cotización del dólar blue en este momento. Intente más tarde.')
+            .up()
+            .ele('Redirect', { method: 'POST' }, `${process.env.TWILIO_WEBHOOK_URL}?FlowEvent=return`)
+            .up()
             .end({ pretty: true });
 
         res.type('application/xml');
