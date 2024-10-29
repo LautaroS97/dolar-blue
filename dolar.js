@@ -17,6 +17,10 @@ async function obtenerCotizacionDolarBlue() {
         });
         
         const { compra, venta, fechaActualizacion } = response.data;
+        
+        // Log para revisar el formato de la fecha
+        console.log(`Formato de la fecha recibida: ${fechaActualizacion}`);
+        
         console.log(`Dólar Blue - Compra: ${compra}, Venta: ${venta}, Fecha de actualización: ${fechaActualizacion}`);
         
         // Generar el XML con la cotización
