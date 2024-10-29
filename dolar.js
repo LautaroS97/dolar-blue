@@ -65,7 +65,7 @@ app.get('/dolar-blue', (req, res) => {
         const xml = xmlbuilder.create('Response')
             .ele('Say', { voice: 'Polly.Andres-Neural', language: "es-MX" }, 'Lo sentimos, no se pudo obtener la cotización del dólar blue en este momento. Intente más tarde.')
             .up()
-            .ele('Redirect', { method: 'POST' }, `${process.env.TWILIO_WEBHOOK_URL}?FlowEvent=return`)
+            .ele('Redirect', `${process.env.TWILIO_WEBHOOK_URL}?FlowEvent=return`)
             .up()
             .end({ pretty: true });
 
