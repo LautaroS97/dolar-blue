@@ -20,9 +20,8 @@ async function obtenerCotizacionDolarBlue() {
         
         // Generar el XML con la cotización
         const xml = xmlbuilder.create('Response')
-            .ele('Say', {}, `El valor del dólar blue es. Compra: ${compra} pesos. Venta: ${venta} pesos.`)
+            .ele('Say', {}, `${compra} pesos para la compra. Y ${venta} pesos para la venta.`)
             .up()
-            .ele('Say', {}, `La cotización fue actualizada el: ${fechaActualizacion}.`)
             .end({ pretty: true });
 
         latestXml = xml;
