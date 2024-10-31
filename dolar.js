@@ -52,7 +52,7 @@ async function obtenerCotizacionDolarBlue() {
         
         // Generar el XML con la cotización
         const xml = xmlbuilder.create('Response')
-            .ele('Say', { voice: 'Polly.Andres-Neural', language: "es-MX" }, `${compra} pesos para la compra. Y ${venta} para la venta. Actualizado el ${fechaFormateada}.`)
+            .ele('Say', { voice: 'Polly.Andres-Neural', language: "es-MX" }, `${compra} para la compra. Y ${venta} para la venta. Actualizado el ${fechaFormateada}.`)
             .up()
             .ele('Redirect', { method: 'POST' }, `${process.env.TWILIO_WEBHOOK_URL}?FlowEvent=return`)
             .up()
