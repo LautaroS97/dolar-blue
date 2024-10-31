@@ -34,7 +34,10 @@ function formatearFecha(fechaString) {
 async function obtenerCotizacionDolarBlue() {
     let browser;
     try {
-        browser = await puppeteer.launch({ headless: true });
+        browser = await puppeteer.launch({ 
+            headless: true,
+            args: ['--no-sandbox', '--disable-setuid-sandbox']
+        });
         const page = await browser.newPage();
         await page.goto('https://www.cronista.com/MercadosOnline/moneda.html?id=ARSB', { waitUntil: 'networkidle2' });
 
