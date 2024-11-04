@@ -9,18 +9,15 @@ app.use(express.json()); // Para manejar el cuerpo de solicitudes POST
 // Variable para almacenar el XML generado
 let latestXml = null;
 
-// Función para formatear la fecha y ajustarla automáticamente a la zona horaria de Argentina
+// Función para formatear la fecha sin mostrar la hora
 function formatearFecha(fechaString) {
     // Convertir la cadena de texto a un objeto Date en UTC
     const fecha = new Date(fechaString);
 
-    // Opciones para formatear la fecha en "Día y mes, y hora, minuto" en la zona horaria de Argentina
+    // Opciones para formatear solo el día y el mes en la zona horaria de Argentina
     const opciones = {
         day: 'numeric',
         month: 'long',
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: false,
         timeZone: 'America/Argentina/Buenos_Aires'
     };
 
