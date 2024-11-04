@@ -1,5 +1,5 @@
 const express = require('express');
-const puppeteer = require('puppeteer');
+const axios = require('axios');
 const xmlbuilder = require('xmlbuilder');
 require('dotenv').config(); // Para manejar variables de entorno
 
@@ -11,13 +11,10 @@ let latestXml = null;
 
 // Función para formatear la fecha y ajustarla automáticamente a la zona horaria de Argentina
 function formatearFecha(fechaString) {
-    // Convertir la cadena de texto al formato adecuado
-    const [fecha, hora] = fechaString.split(" ");
-    const [dia, mes, año] = fecha.split(".");
-    const [hora24, minutos] = hora.split(":");
-    
-    const fechaFormateada = new Date(`${año}-${mes}-${dia}T${hora24}:${minutos}:00-03:00`);
+    // Convertir la cadena de texto a un objeto Date en UTC
+    const fecha = new Date(fechaString);
 
+    // Opciones para formatear la fecha en "Día y mes, y hora, minuto" en la zona horaria de Argentina
     const opciones = {
         day: 'numeric',
         month: 'long',
@@ -27,36 +24,35 @@ function formatearFecha(fechaString) {
         timeZone: 'America/Argentina/Buenos_Aires'
     };
 
-    return new Intl.DateTimeFormat('es-ES', opciones).format(fechaFormateada);
+    const fechaFormateada = new Intl.DateTimeFormat('es-ES', opciones).format(fecha);
+
+    return fechaFormateada;
 }
 
-// Función para obtener la cotización del dólar blue mediante scraping
+// Función para obtener la cotización del dólar blue
 async function obtenerCotizacionDolarBlue() {
-    let browser;
     try {
-        browser = await puppeteer.launch({ 
-            headless: true,
-            args: ['--no-sandbox', '--disable-setuid-sandbox']
+        const response = await axios.get('https://dolarapi.com/v1/dolares/blue', {
+            headers: { 'Content-Type': 'application/json' }
         });
-        const page = await browser.newPage();
-        await page.goto('https://www.cronista.com/MercadosOnline/moneda.html?id=ARSB', { waitUntil: 'networkidle2' });
-
-        // Extraer los valores de compra, venta y fecha de actualización
-        const compra = await page.$eval('.buy .val', el => el.textContent.trim().replace(/\./g, '').replace(',', '.'));
-        const venta = await page.$eval('.sell .val', el => el.textContent.trim().replace(/\./g, '').replace(',', '.'));
-        const fechaActualizacion = await page.$eval('.date', el => el.textContent.replace('Fecha y hora actualización:', '').trim());
-
+        
+        const { compra, venta, fechaActualizacion } = response.data;
+        
+        // Log para revisar el formato de la fecha
+        console.log(`Formato de la fecha recibida: ${fechaActualizacion}`);
+        
         // Formatear la fecha de actualización
         const fechaFormateada = formatearFecha(fechaActualizacion);
         console.log(`Fecha formateada: ${fechaFormateada}`);
         
-        // Generar el XML con la cotización
-        const xml = xmlbuilder.create('Response')
-            .ele('Say', { voice: 'Polly.Andres-Neural', language: "es-MX" }, `${compra} para la compra. Y ${venta} para la venta. Actualizado el ${fechaFormateada}.`)
-            .up()
-            .ele('Redirect', { method: 'POST' }, `${process.env.TWILIO_WEBHOOK_URL}?FlowEvent=return`)
-            .up()
-            .end({ pretty: true });
+// Generar el XML con la cotización
+    const xml = xmlbuilder.create('Response')
+        .ele('Say', {}, `${compra} pesos para la compra. Y ${venta} pesos para la venta. Actualizado el ${fechaFormateada}.`)
+        .up()
+        .ele('Redirect', { method: 'POST' }, `${process.env.TWILIO_WEBHOOK_URL}?FlowEvent=return`)
+        .up()
+        .end({ pretty: true });
+
 
         latestXml = xml;
         console.log('XML generado:', xml);
@@ -69,8 +65,6 @@ async function obtenerCotizacionDolarBlue() {
             .ele('Redirect', { method: 'POST' }, `${process.env.TWILIO_WEBHOOK_URL}?FlowEvent=return`)
             .up()
             .end({ pretty: true });
-    } finally {
-        if (browser) await browser.close();
     }
 }
 
