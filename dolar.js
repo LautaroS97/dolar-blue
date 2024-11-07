@@ -1,55 +1,66 @@
 const express = require('express');
 const axios = require('axios');
 const xmlbuilder = require('xmlbuilder');
-require('dotenv').config(); // Para manejar variables de entorno
+const cheerio = require('cheerio');
+require('dotenv').config();
 
 const app = express();
-app.use(express.json()); // Para manejar el cuerpo de solicitudes POST
+app.use(express.json());
 
-// Variable para almacenar el XML generado
 let latestXml = null;
 
-// Función para formatear la fecha sin mostrar la hora
 function formatearFecha(fechaString) {
-    // Convertir la cadena de texto a un objeto Date en UTC
-    const fecha = new Date(fechaString);
+    // Parsear la fecha desde el formato de la página
+    const fechaRegex = /(\d{2})\/(\d{2})\/(\d{2}) (\d{2}:\d{2}) (AM|PM)/;
+    const match = fechaString.match(fechaRegex);
 
-    // Opciones para formatear solo el día y el mes en la zona horaria de Argentina
-    const opciones = {
+    if (!match) {
+        throw new Error('Formato de fecha no reconocido');
+    }
+
+    let [_, dia, mes, anio, horaMinuto, amPm] = match;
+    anio = `20${anio}`; // Convertir año a formato completo
+
+    let [hora, minuto] = horaMinuto.split(':');
+    if (amPm === 'PM' && hora !== '12') {
+        hora = parseInt(hora, 10) + 12;
+    } else if (amPm === 'AM' && hora === '12') {
+        hora = '00';
+    }
+
+    const fechaISO = `${anio}-${mes}-${dia}T${hora}:${minuto}:00-03:00`;
+    return new Date(fechaISO).toLocaleDateString('es-ES', {
         day: 'numeric',
         month: 'long',
         timeZone: 'America/Argentina/Buenos_Aires'
-    };
-
-    const fechaFormateada = new Intl.DateTimeFormat('es-ES', opciones).format(fecha);
-
-    return fechaFormateada;
+    });
 }
 
-// Función para obtener la cotización del dólar blue
 async function obtenerCotizacionDolarBlue() {
     try {
-        const response = await axios.get('https://dolarapi.com/v1/dolares/blue', {
-            headers: { 'Content-Type': 'application/json' }
-        });
-        
-        const { compra, venta, fechaActualizacion } = response.data;
-        
-        // Log para revisar el formato de la fecha
-        console.log(`Formato de la fecha recibida: ${fechaActualizacion}`);
-        
-        // Formatear la fecha de actualización
-        const fechaFormateada = formatearFecha(fechaActualizacion);
-        console.log(`Fecha formateada: ${fechaFormateada}`);
-        
-// Generar el XML con la cotización
-    const xml = xmlbuilder.create('Response')
-        .ele('Say', {}, `${compra} pesos para la compra. Y ${venta} pesos para la venta. Actualizado el ${fechaFormateada}.`)
-        .up()
-        .ele('Redirect', { method: 'POST' }, `${process.env.TWILIO_WEBHOOK_URL}?FlowEvent=return`)
-        .up()
-        .end({ pretty: true });
+        const { data: html } = await axios.get('https://dolarhoy.com/');
+        const $ = cheerio.load(html);
 
+        // Seleccionar los elementos específicos para compra, venta y fecha
+        const compra = $('.tile.is-child .compra .val').first().text().trim().replace('$', '');
+        const venta = $('.tile.is-child .venta .val').first().text().trim().replace('$', '');
+        const fechaActualizacion = $('.tile.is-child .update span').first().text().trim().replace('Actualizado por última vez: ', '');
+
+        console.log(`Compra: ${compra}, Venta: ${venta}, Fecha de actualización: ${fechaActualizacion}`);
+
+        if (!fechaActualizacion) {
+            throw new Error('Fecha de actualización no encontrada o inválida.');
+        }
+
+        const fechaFormateada = formatearFecha(fechaActualizacion);
+
+        // Generar el XML
+        const xml = xmlbuilder.create('Response')
+            .ele('Say', {}, `${compra} pesos para la compra. Y ${venta} pesos para la venta. Actualizado el ${fechaFormateada}.`)
+            .up()
+            .ele('Redirect', { method: 'POST' }, `${process.env.TWILIO_WEBHOOK_URL}?FlowEvent=return`)
+            .up()
+            .end({ pretty: true });
 
         latestXml = xml;
         console.log('XML generado:', xml);
@@ -87,7 +98,7 @@ app.get('/dolar-blue', (req, res) => {
     } else {
         // Si no hay XML disponible, generar un XML de error
         const xml = xmlbuilder.create('Response')
-            .ele('Say', { voice: 'Polly.Andres-Neural', language: "es-MX" }, 'Lo sentimos, no se pudo obtener la cotización del dólar blue en este momento. Intente más tarde.')
+            .ele('Say', 'Lo sentimos, no se pudo obtener la cotización del dólar blue en este momento. Intente más tarde.')
             .up()
             .ele('Redirect', `${process.env.TWILIO_WEBHOOK_URL}?FlowEvent=return`)
             .up()
